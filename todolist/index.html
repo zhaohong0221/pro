@@ -1,0 +1,263 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<title>ToDoList</title>
+	<link rel="stylesheet" href="css/bootstrap.css">
+	<link rel="stylesheet" href="css/animate.css">
+	<link rel="icon" href="images/favicon.ico">
+	<script src="js/vue.js"></script>
+	<style>
+		*{margin: 0;padding: 0;}
+		li{list-style: none;}
+		body{background-color: #dcdcdc;}
+		.fl{float: left;}
+		.fr{float: right;}
+		.c{
+			width: 600px;
+			margin: 0 auto;
+		}
+		.cf:after{
+			content:"";
+			display: block;
+			clear: both;
+		}
+		.head{
+			background-color: #333;
+		}
+		.head .fl{
+			font-size: 24px;
+			line-height: 50px;
+			color: #ddd;
+		}
+		.head button{
+			float: right;
+			margin: 11px 6px 0 6px;
+		}
+		.head input{
+			float: right;
+			border-radius: 5px;
+			box-shadow: 0 1px 0 rgba(255,255,255,0.24), 0 1px 6px rgba(0,0,0,0.45) inset;
+			border: none;
+			padding: 6px 10px;
+			margin-top: 12px;
+			outline: none;
+		}
+		.foot{
+			overflow: hidden;
+			padding-bottom: 60px;
+		}
+		.foot h2{
+			font-weight: bold;
+			font-size: 24px;
+		}
+		.foot h2 span{
+			float: right;
+			width: 20px;
+			line-height: 20px;
+			text-align: center;
+			background-color: #E6E6FA;
+			color: #666;
+			font-size: 14px;
+			border-radius: 50%;
+			font-weight: bold;
+			margin-top: 3px;
+		}
+		.foot li{
+			font-size: 16px;
+			line-height: 32px;
+		    background: #fff;
+		    position: relative;
+		    margin-bottom: 10px;
+		    border-radius: 3px;
+		    border-left: 5px solid #629A9C;
+		    box-shadow: 0 1px 2px rgba(0,0,0,0.07);
+		}
+		.foot li input{
+			float: left;
+			width: 22px;
+			height: 22px;
+			cursor: pointer;
+			margin: 6px 20px;
+		}
+		.foot li b{
+			float: right;
+			display: inline-block;
+			width: 25px;
+		    height: 25px;
+		    border-radius: 14px;
+		    border: 6px double #FFF;
+		    background: #CCC;
+		    line-height: 14px;
+		    text-align: center;
+		    color: #FFF;
+		    font-weight: bold;
+		    font-size: 14px;
+		    cursor: pointer;
+		    margin-top: 3px;
+		}
+		.foot li span{
+			float: right;
+			font-size: 14px;
+			margin-right: 10px;
+		}
+		.foot .done li{
+			opacity: 0.5;
+		}
+	</style>
+</head>
+<body>
+	<div id="wrap">
+		<div class="head">
+			<div class="c cf">
+				<div class="fl">ToDoList</div>
+				<button class="btn btn-primary" @click="add">添加</button>
+				<input type="text" placeholder="添加ToDo" v-model="values" @keypress="keyadd">
+			</div>
+		</div>
+		<div class="foot">
+			<div class="c">
+				<doing :lists="list" @deletes="deletes" @push="push"></doing>
+				<done :lists="list" @deletes="deletes" @push="push"></done>
+			</div>
+		</div>
+	</div>
+	<script>
+		window.onunload=function(){
+			localStorage.setItem("history",JSON.stringify(root.list))
+		}
+		Vue.component("doing",{
+			template:`
+				<div>
+					<h2>正在进行<span>{{count}}</span></h2>
+					<p v-if="!count">暂无数据</p>
+					<transition-group v-if="count" tag="ul" enter-active-class="animated zoomInRight" leave-active-class="animated zoomOut">
+						<li v-for="(item,index) of lists" v-if="!item.status" :key=item.name>
+							<input type="checkbox" @click="ischecked(index)" />
+							{{item.name}}
+							<b @click="deletedata(index)">-</b>
+							<span>{{item.time}}</span>
+						</li>
+					</transition-group>
+				</div>
+			`,
+			props:["lists"],
+			methods:{
+				deletedata(index){
+					this.$emit("deletes",index)
+				},
+				ischecked(index){
+					this.$emit("push",index)
+				}
+			},
+			computed:{
+				count(){
+					var counts=0;
+					for(item of this.lists){
+						if(!item.status){
+							counts++
+						}
+					}
+					return counts
+				}
+			}
+		})
+		Vue.component("done",{
+			template:`
+				<div class="done">
+					<h2>已经完成<span>{{count}}</span></h2>
+					<p v-if="!count">暂无数据</p>
+					<transition-group v-if="count" tag="ul" enter-active-class="animated zoomInRight" leave-active-class="animated zoomOut">
+						<li v-for="(item,index) of lists" v-if="item.status" :key="item.name">
+							<input type="checkbox" checked @click="ischecked(index)" />
+							{{item.name}}
+							<b @click="deletedata(index)">-</b>
+							<span>{{item.time}}</span>
+						</li>
+					</transition-group>
+				</div>
+			`,
+			props:["lists"],
+			methods:{
+				deletedata(index){
+					this.$emit("deletes",index)
+				},
+				ischecked(index){
+					this.$emit("push",index)
+				}
+			},
+			computed:{
+				count(){
+					var counts=0;
+					for(item of this.lists){
+						if(item.status){
+							counts++
+						}
+					}
+					return counts;
+				}
+			}
+		})
+		var root=new Vue({
+			el:"#wrap",
+			data:{
+				values:"",
+				list:[]
+			},
+			methods:{
+				date(){
+					var date=new Date();
+					var year=date.getFullYear();
+					var month=date.getMonth()+1;
+					var day=date.getDate();
+					var hour=date.getHours()<10?"0"+date.getHours():date.getHours();
+					var minute=date.getMinutes()<10?"0"+date.getMinutes():date.getMinutes();
+					var second=date.getSeconds()<10?"0"+date.getSeconds():date.getSeconds();
+					var time=year+"-"+month+"-"+day +"  "+ hour+":"+minute+":"+second;
+					return time
+				},
+				add(){
+					if(this.values){
+						var addtimes=0
+						var val=this.values;
+						for(item of this.list){
+							if(item.name==val){
+								addtimes++;
+								val=this.values+addtimes
+							}
+						}
+						var time=this.date();
+						var obj={};
+						obj.name=val;
+						obj.time=time;
+						obj.status=false;
+						this.list.push(obj);
+						this.values=""
+					}
+				},
+				keyadd(){
+					if(event.keyCode==13){
+						this.add()
+					}
+				},
+				deletes(index){
+					this.list.splice(index,1)
+				},
+				push(index){
+					this.list[index].time=this.date();
+					this.list[index].status=!this.list[index].status
+				},
+				pushup(index){
+					this.list[index].status=false
+				}
+			},
+			mounted(){
+				var history=JSON.parse(localStorage.getItem("history"));
+				if(history){
+					this.list=history
+				}
+			}
+		})
+	</script>
+</body>
+</html>
